@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chatran 🤖 — همه چیز بلد</title>
+<style>
+body {font-family: Tahoma, Arial, sans-serif; background: linear-gradient(135deg,#0a1b2a,#061423); color:#e6eef8; display:flex; justify-content:center; align-items:center; height:100vh; margin:0;}
+#chatbox {width:950px; max-width:95%; height:850px; background:#082236; border-radius:12px; padding:20px; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(0,0,0,0.6);}
+#header {text-align:center; font-weight:bold; font-size:28px; margin-bottom:12px; color:#06b6d4;}
+#messages {flex:1; overflow-y:auto; padding:12px; background:#0b3b4f; border-radius:8px; margin-bottom:12px;}
+.msg {margin:6px 0; padding:10px 14px; border-radius:10px; line-height:1.4; word-break: break-word;}
+.user {background:#2b3a4b; align-self:flex-end;}
+.bot {background:#066b81; align-self:flex-start;}
+#inputArea {display:flex; gap:10px;}
+#userInput {flex:1; padding:12px; border-radius:8px; border:none; font-size:15px;}
+#sendBtn {padding:12px 16px; border:none; border-radius:8px; background:#06b6d4; color:#04282b; font-weight:700; cursor:pointer;}
+</style>
+</head>
+<body>
+<div id="chatbox">
+<div id="header">Chatran 🤖 — همه چیز بلد</div>
+<div id="messages"></div>
+<div id="inputArea">
+<input id="userInput" placeholder="پیام خود را بنویس...">
+<button id="sendBtn">ارسال</button>
+</div>
+</div>
+<script>
+const memory = {};
+const words = {
+"ضمیر":["من","تو","او","ما","شما","آنها"],
+"فعل":["هستم","هستی","است","هستیم","هستید","هستند","رفتم","می‌روم","خواندم","می‌خوانم","دوست دارم","می‌دانم"],
+"اسم":["کتاب","دوست","خانه","عشق","داداش","خورشید","ماه","دنیای","زندگی","پیام"],
+"صفت":["خوب","عالی","زیبا","عجیب","شاد","غمگین"],
+"قید":["سریع","آرام","دقیق","زیبا","همیشه","هرگز"],
+"حرف":["و","با","به","از","برای","در","مثل"]
+};
+function pickRandom(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function makeSentence(input){
+  let pronoun = pickRandom(words["ضمیر"]);
+  let verb = pickRandom(words["فعل"]);
+  let noun = pickRandom(words["اسم"]);
+  let adj = pickRandom(words["صفت"]);
+  let adverb = pickRandom(words["قید"]);
+  let conj = pickRandom(words["حرف"]);
+  const patterns = [
+    `${pronoun} ${verb} ${noun} ${adj} ${adverb}.`,
+    `${pronoun} ${verb} ${conj} ${noun} ${adj}.`,
+    `${noun} ${adj} است و ${pronoun} ${verb} ${adverb}.`,
+    `${pronoun} ${verb} ${noun} و ${pronoun} ${verb} ${adj} ${adverb}.`,
+    `تو گفتی: '${input}'. من ${verb} ${noun} ${adj} ${adverb}.`
+  ];
+  return pickRandom(patterns);
+}
+function levenshtein(a,b){
+  const m=a.length,n=b.length;
+  if(m===0)return n;if(n===0)return m;
+  const dp=Array(m+1).fill(0).map(()=>Array(n+1).fill(0));
+  for(let i=0;i<=m;i++)dp[i][0]=i;
+  for(let j=0;j<=n;j++)dp[0][j]=j;
+  for(let i=1;i<=m;i++){
+    for(let j=1;j<=n;j++){
+      const cost=a[i-1]===b[j-1]?0:1;
+      dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,dp[i-1][j-1]+cost);
+    }
+  }
+  return dp[m][n];
+}
+function findBestMatch(input){
+  let bestKey=null,minDist=Infinity;
+  for(const key in memory){
+    const d=levenshtein(key,input);
+    if(d<minDist){minDist=d;bestKey=key;}
+  }
+  if(minDist<=Math.max(1,Math.floor(input.length*0.3)))return bestKey;
+  return null;
+}
+function appendMessage(text,cls){
+  const div=document.createElement('div');
+  div.className='msg '+cls;
+  div.innerText=text;
+  document.getElementById('messages').appendChild(div);
+  document.getElementById('messages').scrollTop=document.getElementById('messages').scrollHeight;
+}
+function generateDynamicResponse(input){
+  if(Math.random()<0.01){memory[input]=input;}
+  return makeSentence(input);
+}
+function reply(input){
+  const key=findBestMatch(input);
+  let response='';
+  if(key)response=memory[key];
+  else response=generateDynamicResponse(input);
+  appendMessage(response,'bot');
+}
+function userSend(){
+  const input=document.getElementById('userInput').value.trim();
+  if(!input)return;
+  appendMessage(input,'user');
+  document.getElementById('userInput').value='';
+  reply(input);
+}
+document.getElementById('sendBtn').addEventListener('click',userSend);
+document.getElementById('userInput').addEventListener('keypress',e=>{
+  if(e.key==='Enter'){e.preventDefault();userSend();}
+});
+appendMessage("سلام! من Chatran هستم 🤖، همه چیز را می‌دانم و می‌توانم جملات فارسی درست بسازم، هر چیزی که بنویسی را تحلیل و یاد می‌گیرم.",'bot');
+</script>
+</body>
+</html>
