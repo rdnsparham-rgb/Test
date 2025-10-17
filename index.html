@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<title>Chatran ML</title>
+<style>
+body { font-family:sans-serif; background:#0b1b2b; color:#e0f7fa; display:flex; flex-direction:column; align-items:center; }
+#chatbox { width:80%; max-width:700px; height:70vh; background:#112f44; overflow-y:auto; padding:15px; border-radius:10px; margin-top:20px; }
+.message { margin:5px 0; padding:10px; border-radius:10px; max-width:80%; }
+.user { background:#065a82; align-self:flex-end; }
+.bot { background:#0277bd; align-self:flex-start; }
+#inputRow { display:flex; width:80%; max-width:700px; margin-top:10px; }
+#userInput { flex:1; padding:10px; border-radius:10px; border:none; outline:none; background:#093143; color:#e0f7fa; }
+#sendBtn { background:#00bcd4; color:#002430; border:none; padding:10px 20px; margin-left:5px; border-radius:10px; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<div id="chatbox"></div>
+<div id="inputRow">
+  <input id="userInput" placeholder="پیامتو بنویس...">
+  <button id="sendBtn">ارسال</button>
+</div>
+
+<script>
+// داده JSON (میتونه از data.json لود بشه)
+const data = [
+  {"input": "سلام", "output": "سلام! چطوری رفیق؟"},
+  {"input": "چطوری؟", "output": "من خوبم، تو چطوری؟"},
+  {"input": "خداحافظ", "output": "فعلاً! مراقب خودت باش."},
+  {"input": "مرسی", "output": "خواهش میکنم!"},
+  {"input": "کد HTML", "output": "میخوای برات یه کد HTML بنویسم؟"}
+];
+
+// حافظه کوتاه مدت
+let history = [];
+
+// اضافه کردن پیام
+function addMessage(text, cls){
+  const div=document.createElement("div");
+  div.className="message "+cls;
+  div.textContent=text;
+  chatbox.appendChild(div);
+  chatbox.scrollTop=chatbox.scrollHeight;
+}
+
+// پیدا کردن پاسخ با الگوریتم ساده ML-like
+function getResponse(msg){
+  msg = msg.toLowerCase().trim();
+  
+  // تطبیق دقیق یا نزدیک
+  let bestMatch = null;
+  let maxScore = 0;
+  data.forEach(item => {
+    let score = 0;
+    item.input.split(" ").forEach(word => { if(msg.includes(word)) score++; });
+    if(score > maxScore){ maxScore = score; bestMatch = item; }
+  });
+
+  if(bestMatch) return bestMatch.output;
+
+  // حدس ترکیبی ساده
+  const subjects = ["من","تو","او","ما","شما"];
+  const verbs = ["می‌فهمم","می‌دانم","می‌توانم","تحلیل می‌کنم","می‌سازم"];
+  const objects = ["جمله‌ات را","موضوعت را","متنت را","حرفت را"];
+  const s = subjects[Math.floor(Math.random()*subjects.length)];
+  const v = verbs[Math.floor(Math.random()*verbs.length)];
+  const o = objects[Math.floor(Math.random()*objects.length)];
+  return `${s} ${v} ${o} 🔹`;
+}
+
+// ارسال پیام
+function sendMessage(){
+  const msg = input.value.trim();
+  if(!msg) return;
+  addMessage(msg,"user");
+  input.value="";
+  const res = getResponse(msg);
+  history.push({user:msg,bot:res});
+  addMessage(res,"bot");
+}
+
+const input=document.getElementById("userInput");
+const sendBtn=document.getElementById("sendBtn");
+const chatbox=document.getElementById("chatbox");
+
+sendBtn.onclick=sendMessage;
+input.onkeypress=(e)=>{if(e.key==="Enter")sendMessage();};
+</script>
+
+</body>
+</html>
