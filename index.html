@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chatran 🤖</title>
+<style>
+body { font-family: Tahoma, sans-serif; background:#f0f0f0; margin:0; padding:0; display:flex; justify-content:center; align-items:center; height:100vh; }
+#chat-container { width: 500px; background:#fff; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2); display:flex; flex-direction:column; }
+#messages { flex:1; padding:10px; overflow-y:auto; height:400px; }
+.message { margin:5px 0; }
+.user { text-align:right; color:#333; }
+.bot { text-align:left; color:#0066cc; }
+#input-container { display:flex; }
+#user-input { flex:1; padding:10px; border:none; border-top:1px solid #ccc; border-radius:0 0 0 10px; }
+#send-btn { padding:10px; border:none; background:#0066cc; color:#fff; cursor:pointer; border-radius:0 0 10px 0; }
+</style>
+</head>
+<body>
+<div id="chat-container">
+  <div id="messages"></div>
+  <div id="input-container">
+    <input type="text" id="user-input" placeholder="پیامتو بنویس...">
+    <button id="send-btn">ارسال</button>
+  </div>
+</div>
+
+<script>
+// --- بارگذاری JSON ها ---
+let chatData = {};
+const files = ['data1.json','data2.json','data3.json','data4.json','data5.json'];
+files.forEach(file => {
+  fetch(file).then(r=>r.json()).then(json => { chatData = {...chatData,...json}; });
+});
+
+// --- تاریخچه ---
+let chatHistory = [];
+const saveHistory = () => localStorage.setItem('chatran_history', JSON.stringify(chatHistory));
+if(localStorage.getItem('chatran_history')){
+  chatHistory = JSON.parse(localStorage.getItem('chatran_history'));
+  chatHistory.forEach(msg=>addMessage(msg.user,msg.text));
+}
+
+// --- نمایش پیام ---
+function addMessage(user,text){
+  const div = document.createElement('div');
+  div.className = 'message ' + (user==='user'?'user':'bot');
+  div.innerText = text;
+  document.getElementById('messages').appendChild(div);
+  document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+}
+
+// --- توابع کمکی ---
+function normalizeText(text){
+  return text.replace(/[^آ-ی0-9a-zA-Z ]/g,'').trim().toLowerCase();
+}
+
+function similarity(a,b){
+  let count=0;
+  for(let i=0;i<Math.min(a.length,b.length);i++){ if(a[i]===b[i]) count++; }
+  return count/Math.max(a.length,b.length);
+}
+
+// --- پیدا کردن بهترین مسیر ---
+function findBestPath(input){
+  const inputNorm = normalizeText(input);
+  let bestScore = 0;
+  let bestKey = '';
+  for(let key in chatData){
+    const keyNorm = normalizeText(key);
+    const score = similarity(inputNorm,keyNorm);
+    if(score > bestScore){
+      bestScore = score;
+      bestKey = key;
+    }
+  }
+  if(bestScore > 0.3) return bestKey;
+  return null;
+}
+
+// --- ساخت جمله فارسی درست ---
+function generateSentence(key){
+  if(!key){
+    // اگر مسیر مشابه نبود، جمله مرتبط با پرکاربردترین مسیر بساز
+    const keys = Object.keys(chatData);
+    if(keys.length>0) key = keys[0];
+    else return "Chatran: سلام! چقدر خوبه که باهات صحبت می‌کنم. ✅";
+  }
+  const parts = key.split(' ');
+  const sentence = parts.map(p=>p.charAt(0).toUpperCase()+p.slice(1)).join(' ') + ' ✅';
+  return `Chatran: ${sentence}`;
+}
+
+// --- موتور جمله‌سازی هر ثانیه ---
+function autoGenerate(){
+  const sentence = generateSentence(null);
+  addMessage('bot',sentence);
+  chatHistory.push({user:'bot',text:sentence});
+  saveHistory();
+}
+setInterval(autoGenerate,1000);
+
+// --- پاسخ به کاربر ---
+function handleUser(input){
+  addMessage('user',input);
+  const pathKey = findBestPath(input);
+  const reply = generateSentence(pathKey);
+  addMessage('bot',reply);
+  chatHistory.push({user:'user',text:input});
+  chatHistory.push({user:'bot',text:reply});
+  saveHistory();
+}
+
+// --- رویداد ارسال ---
+document.getElementById('send-btn').addEventListener('click',()=>{
+  const input = document.getElementById('user-input').value;
+  if(!input) return;
+  handleUser(input);
+  document.getElementById('user-input').value='';
+});
+</script>
+</body>
+</html>
